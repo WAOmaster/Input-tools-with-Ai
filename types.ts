@@ -3,6 +3,7 @@ export interface Language {
   name: string;
   nativeName: string;
   script: string;
+  googleInputCode?: string;
 }
 
 export enum InputMode {

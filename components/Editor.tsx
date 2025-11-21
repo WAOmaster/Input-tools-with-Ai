@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language, InputMode, GenerationState } from '../types';
 import { processText } from '../services/geminiService';
+import { fetchTransliteration } from '../services/googleInputTools';
 import { PLACEHOLDERS, DEBOUNCE_DELAY_MS } from '../constants';
 
 interface EditorProps {
@@ -27,7 +28,7 @@ export const Editor: React.FC<EditorProps> = ({ selectedLanguage, inputMode }) =
     return () => {
       clearTimeout(handler);
     };
-  }, [sourceText]);
+  }, [sourceText, DEBOUNCE_DELAY_MS]);
 
   useEffect(() => {
     const performConversion = async () => {
@@ -39,11 +40,27 @@ export const Editor: React.FC<EditorProps> = ({ selectedLanguage, inputMode }) =
       setGenerationState({ isGenerating: true, error: null });
 
       try {
-        const result = await processText(debouncedSourceText, selectedLanguage, inputMode);
+        let result = '';
+        
+        // Strategy: Use Google Input Tools API for Transliteration (faster, more accurate for phonetics)
+        // Use Gemini for Translation (better understanding of meaning)
+        if (inputMode === InputMode.TRANSLITERATION && selectedLanguage.googleInputCode) {
+          try {
+            result = await fetchTransliteration(debouncedSourceText, selectedLanguage.googleInputCode);
+          } catch (err) {
+            console.warn("Google Input Tools API failed, falling back to Gemini AI...", err);
+            // Fallback to Gemini if Input Tools fails (e.g., network issues)
+            result = await processText(debouncedSourceText, selectedLanguage, inputMode);
+          }
+        } else {
+          // Default to Gemini for Translation or if no Input Code is available
+          result = await processText(debouncedSourceText, selectedLanguage, inputMode);
+        }
+
         setTargetText(result);
         setGenerationState({ isGenerating: false, error: null });
       } catch (error) {
-        setGenerationState({ isGenerating: false, error: 'Failed to process text. Please try again.' });
+        setGenerationState({ isGenerating: false, error: 'Failed to process text. Please check your connection.' });
       }
     };
 
@@ -94,7 +111,7 @@ export const Editor: React.FC<EditorProps> = ({ selectedLanguage, inputMode }) =
         />
         <div className="px-4 py-2 bg-white text-xs text-gray-400 border-t border-gray-50 flex justify-between">
             <span>{sourceText.length} chars</span>
-            <span>typing...</span>
+            <span>{generationState.isGenerating ? 'processing...' : 'ready'}</span>
         </div>
       </div>
 
