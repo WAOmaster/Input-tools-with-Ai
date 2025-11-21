@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Input Tools",
+  "description": "A universal, cross-browser input tool powered by Gemini AI. Type phonetically in Latin script and instantly convert it to over 30+ languages including Hindi, Arabic, Japanese, and Russian. Works on Firefox, Safari, and Chrome.",
+  "requestFramePermissions": []
+}
